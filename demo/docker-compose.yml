@@ -1,0 +1,43 @@
+services:
+  mysql-db:
+    image: mysql:9.1
+    container_name: almacen_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+      MYSQL_DATABASE: almacen_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot1234"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  spring-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: almacen_app
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/almacen_db?useSSL=false&requireSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root1234
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
