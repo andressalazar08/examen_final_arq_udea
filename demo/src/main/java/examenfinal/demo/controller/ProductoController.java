@@ -6,11 +6,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import examenfinal.demo.dto.ProductoInventarioDTO;
+import examenfinal.demo.dto.ProductoRequestDTO;
+import examenfinal.demo.model.Producto;
 import examenfinal.demo.service.ProductoService;
 
 @RestController
@@ -34,5 +38,20 @@ public class ProductoController {
         }
         
         return new ResponseEntity<>(inventario, HttpStatus.OK);
+    }
+    
+    /**
+     * Método POST que permite ingresar la información de productos del almacén
+     * @param productoRequest DTO con datos del producto (nombre, descripción, cantidad, idSede)
+     * @return Producto creado
+     */
+    @PostMapping
+    public ResponseEntity<Producto> crearProducto(@RequestBody ProductoRequestDTO productoRequest) {
+        try {
+            Producto nuevoProducto = productoService.crearProducto(productoRequest);
+            return new ResponseEntity<>(nuevoProducto, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
     }
 }
