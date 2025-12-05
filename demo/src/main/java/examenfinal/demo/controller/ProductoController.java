@@ -22,24 +22,36 @@ import examenfinal.demo.dto.ProductoInventarioDTO;
 import examenfinal.demo.dto.ProductoRequestDTO;
 import examenfinal.demo.model.Producto;
 import examenfinal.demo.service.ProductoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/inventario")
+@Tag(name = "Inventario", description = "API para gestión de inventario de productos por sede")
 public class ProductoController {
     
     @Autowired
     private ProductoService productoService;
     
-    /**
-     * Método GET que consulta el inventario de productos de un almacén determinado
-     * @param idSede ID de la sede del almacén
-     * @param apiVersion Versión del API mediante Custom Request Header
-     * @return Lista de productos con nombre y cantidad usando HATEOAS
-     */
-    @GetMapping(headers = "X-API-VERSION=1")
-    public ResponseEntity<CollectionModel<ProductoInventarioDTO>> obtenerInventarioPorSedeV1(
-            @RequestParam Long idSede,
-            @RequestHeader(value = "X-API-VERSION", defaultValue = "1") String apiVersion) {
+    @Operation(
+        summary = "Consultar inventario por sede",
+        description = "Obtiene el listado completo de productos con sus cantidades disponibles en una sede específica del almacén"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Inventario encontrado exitosamente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductoInventarioDTO.class))),
+        @ApiResponse(responseCode = "204", description = "No hay productos en el inventario de la sede especificada", 
+            content = @Content)
+    })
+    @GetMapping
+    public ResponseEntity<List<ProductoInventarioDTO>> obtenerInventarioPorSede(
+        @Parameter(description = "ID de la sede del almacén", required = true, example = "1")
+        @RequestParam Long idSede) {
         List<ProductoInventarioDTO> inventario = productoService.obtenerInventarioPorSede(idSede);
         
         if (inventario.isEmpty()) {
@@ -75,16 +87,24 @@ public class ProductoController {
         return new ResponseEntity<>(collectionModel, HttpStatus.OK);
     }
     
-    /**
-     * Método POST que permite ingresar la información de productos del almacén
-     * @param productoRequest DTO con datos del producto (nombre, descripción, cantidad, idSede)
-     * @param apiVersion Versión del API mediante Custom Request Header
-     * @return Producto creado
-     */
-    @PostMapping(headers = "X-API-VERSION=1")
-    public ResponseEntity<Producto> crearProductoV1(
-            @RequestBody ProductoRequestDTO productoRequest,
-            @RequestHeader(value = "X-API-VERSION", defaultValue = "1") String apiVersion) {
+    @Operation(
+        summary = "Crear nuevo producto",
+        description = "Permite ingresar la información de un nuevo producto al inventario del almacén junto con su cantidad inicial en stock"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Producto creado exitosamente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Producto.class))),
+        @ApiResponse(responseCode = "400", description = "Datos inválidos o sede no encontrada", 
+            content = @Content)
+    })
+    @PostMapping
+    public ResponseEntity<Producto> crearProducto(
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Datos del producto a crear (nombre, descripción, cantidad inicial y sede)",
+            required = true,
+            content = @Content(schema = @Schema(implementation = ProductoRequestDTO.class))
+        )
+        @RequestBody ProductoRequestDTO productoRequest) {
         try {
             Producto nuevoProducto = productoService.crearProducto(productoRequest);
             return new ResponseEntity<>(nuevoProducto, HttpStatus.CREATED);
